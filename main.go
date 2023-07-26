@@ -1,31 +1,50 @@
 package main
 
 import (
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/pcap"
+	"fmt"
+	"github.com/charmbracelet/huh"
+	"github.com/jipark0716/ip-sensor/pcap"
 	"log"
+	"net"
 )
 
 func main() {
-	//nics, err := net.Interfaces()
-	//if err != nil {
-	//	panic(err)
-	//}
-	//log.Printf("%#v\n", nics)
-
-	if handle, err := pcap.OpenLive("lo0", 1600, true, pcap.BlockForever); err != nil {
-		panic(err)
-	} else if err := handle.SetBPFFilter("tcp and port 80"); err != nil { // optional
-		panic(err)
-	} else {
-		packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
-		for packet := range packetSource.Packets() {
-			handlePacket(packet) // Do something with a packet here.
-		}
+	device, err := selectNetworkInterface()
+	if err != nil {
+		log.Fatalf("network interface 선택 실패 %#v", err)
 	}
 
+	var endpoint string
+	err = huh.NewInput().
+		Title("filter endpoint").
+		Value(&endpoint).
+		Run()
+
+	filter, err := pcap.NewIpFilter(endpoint)
+
+	if err != nil {
+		log.Fatalf("ip filter 입력 실패 %#v", err)
+	}
+
+	pcap.Pcap(device, filter)
 }
 
-func handlePacket(packet gopacket.Packet) {
-	log.Printf("%#v\n", packet)
+func selectNetworkInterface() (result string, err error) {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return
+	}
+
+	var options = make([]huh.Option[string], len(interfaces))
+	for index, element := range interfaces {
+		options[index] = huh.NewOption(fmt.Sprintf("mtu:%d\tname:%s", element.MTU, element.Name), element.Name)
+	}
+
+	err = huh.NewSelect[string]().
+		Title("Choose network interface").
+		Options(options...).
+		Value(&result).
+		Run()
+
+	return
 }
