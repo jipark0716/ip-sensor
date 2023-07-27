@@ -20,13 +20,25 @@ func main() {
 		Value(&endpoint).
 		Run()
 
-	filter, err := pcap.NewIpFilter(endpoint)
+	var port string
+	err = huh.NewInput().
+		Title("filter port").
+		Value(&port).
+		Run()
 
+	ipFilter, err := pcap.NewIpFilter(endpoint)
 	if err != nil {
-		log.Fatalf("ip filter 입력 실패 %#v", err)
+		log.Fatalf("endpoint filter 입력 실패 %#v", err)
 	}
 
-	pcap.Pcap(device, filter)
+	pcap.Pcap(
+		device,
+		pcap.BPFQuery{
+			Ip:   endpoint,
+			Port: port,
+		},
+		ipFilter,
+	)
 }
 
 func selectNetworkInterface() (result string, err error) {

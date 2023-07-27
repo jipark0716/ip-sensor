@@ -6,8 +6,13 @@ import (
 	"log"
 )
 
-func Pcap(device string, filters ...Filter) {
+func Pcap(device string, query BPFQuery, filters ...Filter) {
 	handle, err := pcap.OpenLive(device, 1600, true, pcap.BlockForever)
+	if err != nil {
+		log.Fatalf("pcap connect fail %#v", err)
+	}
+
+	err = handle.SetBPFFilter(query.String())
 	if err != nil {
 		log.Fatalf("pcap connect fail %#v", err)
 	}
