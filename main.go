@@ -1,62 +1,35 @@
 package main
 
 import (
-	"fmt"
-	"github.com/charmbracelet/huh"
+	"github.com/jipark0716/ip-sensor/argument"
 	"github.com/jipark0716/ip-sensor/pcap"
 	"log"
-	"net"
 )
 
 func main() {
-	device, err := selectNetworkInterface()
+	arguments, err := argument.Get()
 	if err != nil {
-		log.Fatalf("network interface 선택 실패 %#v", err)
+		log.Fatalf("argument parse fail %#v", err)
 	}
 
-	var endpoint string
-	err = huh.NewInput().
-		Title("filter endpoint").
-		Value(&endpoint).
-		Run()
-
-	var port string
-	err = huh.NewInput().
-		Title("filter port").
-		Value(&port).
-		Run()
-
-	ipFilter, err := pcap.NewIpFilter(endpoint)
+	ipFilter, err := pcap.NewIpFilter(*arguments.Endpoint)
 	if err != nil {
 		log.Fatalf("endpoint filter 입력 실패 %#v", err)
 	}
 
 	pcap.Pcap(
-		device,
+		*arguments.Device,
 		pcap.BPFQuery{
-			Ip:   endpoint,
-			Port: port,
+			Ip:   *arguments.Endpoint,
+			Port: *arguments.Port,
 		},
-		ipFilter,
+		[]pcap.Filter{
+			ipFilter,
+			pcap.TcpPshFilter{},
+		},
+		[]pcap.Formatter{
+			pcap.PortFormat{},
+			pcap.StringBodyFormatter{Offset: 4},
+		},
 	)
-}
-
-func selectNetworkInterface() (result string, err error) {
-	interfaces, err := net.Interfaces()
-	if err != nil {
-		return
-	}
-
-	var options = make([]huh.Option[string], len(interfaces))
-	for index, element := range interfaces {
-		options[index] = huh.NewOption(fmt.Sprintf("mtu:%d\tname:%s", element.MTU, element.Name), element.Name)
-	}
-
-	err = huh.NewSelect[string]().
-		Title("Choose network interface").
-		Options(options...).
-		Value(&result).
-		Run()
-
-	return
 }

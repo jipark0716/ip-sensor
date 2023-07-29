@@ -2,6 +2,7 @@ package pcap
 
 import (
 	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
 	"net"
 )
 
@@ -12,6 +13,8 @@ type Filter interface {
 type IpFilter struct {
 	ips []gopacket.Endpoint
 }
+
+type TcpPshFilter struct{}
 
 func NewIpFilter(domain string) (Filter, error) {
 	endpoints, err := net.LookupIP(domain)
@@ -26,6 +29,11 @@ func NewIpFilter(domain string) (Filter, error) {
 	return IpFilter{
 		ips: ips,
 	}, nil
+}
+
+func (f TcpPshFilter) Run(packet gopacket.Packet) bool {
+	tcp := packet.LayerClass(layers.LayerTypeTCP).(*layers.TCP)
+	return tcp.PSH
 }
 
 func (f IpFilter) Run(packet gopacket.Packet) bool {
