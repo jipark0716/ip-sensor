@@ -21,22 +21,19 @@ func Get() (result Arguments, err error) {
 	flag.Parse()
 
 	if result.Device == nil || *result.Device == "" {
-		err = getNetworkInterface(result.Device)
-		if err != nil {
+		if err = getNetworkInterface(result.Device); err != nil {
 			return
 		}
 	}
 
 	if result.Endpoint == nil || *result.Endpoint == "" {
-		err = getEndpoint(result.Endpoint)
-		if err != nil {
+		if err = getEndpoint(result.Endpoint); err != nil {
 			return
 		}
 	}
 
 	if result.Port == nil || *result.Port == "" {
-		err = getPort(result.Port)
-		if err != nil {
+		if err = getPort(result.Port); err != nil {
 			return
 		}
 	}
